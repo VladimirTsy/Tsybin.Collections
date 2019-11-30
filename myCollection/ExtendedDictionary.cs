@@ -39,11 +39,7 @@ namespace myCollection
         {
             return id.GetHashCode() ^ name.GetHashCode();                                                    
         }
-
-      
-
     }
-
 
     /// <summary>
     /// 
@@ -53,8 +49,6 @@ namespace myCollection
     /// <typeparam name="TValue"></typeparam>
     public class ExtendedDictionary<TId, TName, TValue> : IDictionary<KeysPair<TId, TName>, TValue>
     {
- 
-
         private Dictionary<KeysPair<TId, TName>, TValue> fullDict;
 
         private Dictionary<TId, List<TValue>> fastAccesByIdDict;
@@ -73,14 +67,14 @@ namespace myCollection
             rw_locker = new ReaderWriterLockSlim();
         }
 
-        #region 
+        #region
 
-        public TValue[] GetByName(TName name)  
+        public TValue[] GetByName(TName name)
         {
             try
             {
                 rw_locker.EnterReadLock();
-                return fastAccesByNameDict[name].ToArray();         
+                return fastAccesByNameDict[name].ToArray();
             }
             finally
             {
@@ -88,7 +82,7 @@ namespace myCollection
             }
         }
 
-        public TValue[] GetById(TId id)       
+        public TValue[] GetById(TId id)
         {
             try
             {
@@ -102,23 +96,23 @@ namespace myCollection
         }
 
         //Основной метод модификации коллекции
-        public void Add(KeysPair<TId, TName> key, TValue value) 
+        public void Add(KeysPair<TId, TName> key, TValue value)
         {
             try
             {
                 rw_locker.EnterWriteLock();
 
-                fullDict[key] = value;                          //Добавляем запись в основной словарь
+                fullDict[key] = value; //Добавляем запись в основной словарь
 
                 if (fastAccesByIdDict.ContainsKey(key.id))
-                    fastAccesByIdDict[key.id].Add(value);    //Добавляем запись в быстрый кэш по id
+                    fastAccesByIdDict[key.id].Add(value); //Добавляем запись в быстрый кэш по id
                 else
-                    fastAccesByIdDict[key.id] = new List<TValue>() { value };
+                    fastAccesByIdDict[key.id] = new List<TValue>() {value};
 
                 if (fastAccesByNameDict.ContainsKey(key.name))
-                    fastAccesByNameDict[key.name].Add(value);  //Добавляем запись в быстрый кэш по Name
+                    fastAccesByNameDict[key.name].Add(value); //Добавляем запись в быстрый кэш по Name
                 else
-                    fastAccesByNameDict[key.name] = new List<TValue>() { value };
+                    fastAccesByNameDict[key.name] = new List<TValue>() {value};
             }
             finally
             {
@@ -130,50 +124,48 @@ namespace myCollection
         {
             try
             {
-                rw_locker.EnterUpgradeableReadLock();      
+                rw_locker.EnterUpgradeableReadLock();
 
                 TId id = key.id;
                 TName name = key.name;
 
-                if (fullDict.ContainsKey(new KeysPair<TId, TName>(id, name)))   //Если такой ключ есть
+                if (fullDict.ContainsKey(new KeysPair<TId, TName>(id, name))) //Если такой ключ есть
                 {
                     try
                     {
-                        rw_locker.EnterWriteLock();                             //Захватываем лок на модификацию.
+                        rw_locker.EnterWriteLock(); //Захватываем лок на модификацию.
 
                         var tmp_key = new KeysPair<TId, TName>(id, name);
 
-                        if (fastAccesByIdDict[id].Count > 1)                 //Убираем элемент из быстрого доступа по id
+                        if (fastAccesByIdDict[id].Count > 1) //Убираем элемент из быстрого доступа по id
                             fastAccesByIdDict[id].Remove(fullDict[tmp_key]);
                         else fastAccesByIdDict.Remove(id);
 
-                        if (fastAccesByNameDict[name].Count > 1)             //Убираем его из быстрого доступа по name
+                        if (fastAccesByNameDict[name].Count > 1) //Убираем его из быстрого доступа по name
                             fastAccesByNameDict[name].Remove(fullDict[tmp_key]);
                         else fastAccesByNameDict.Remove(name);
 
-                        fullDict.Remove(tmp_key);                           //Убираем его окончательно из основного словаря.
+                        fullDict.Remove(tmp_key); //Убираем его окончательно из основного словаря.
 
                         return true;
                     }
                     finally
                     {
-                        rw_locker.ExitWriteLock();                  //Снимаем лок модификации
+                        rw_locker.ExitWriteLock(); //Снимаем лок модификации
                     }
                 }
+
                 return false;
             }
             finally
             {
-                rw_locker.ExitUpgradeableReadLock();                //Снимаем лок чтения
+                rw_locker.ExitUpgradeableReadLock(); //Снимаем лок чтения
             }
         }
 
         public TValue this[TId id, TName name]
         {
-            set
-            {
-                this.Add(id, name, value);
-            }
+            set { this.Add(id, name, value); }
             get
             {
                 try
@@ -202,9 +194,11 @@ namespace myCollection
                 rw_locker.ExitWriteLock();
             }
         }
+
         #endregion
 
-        #region 
+        #region
+
         //Методы, которые ничего не делают, кроме как вызывают один из основных методов.
         public void Add(TId id, TName name, TValue value)
         {
@@ -230,10 +224,7 @@ namespace myCollection
                     rw_locker.ExitReadLock();
                 }
             }
-            set
-            {
-                this.Add(key, value);
-            }
+            set { this.Add(key, value); }
         }
 
         public bool Remove(TId id, TName name)
@@ -243,7 +234,7 @@ namespace myCollection
 
         public void CopyTo(KeyValuePair<KeysPair<TId, TName>, TValue>[] array, int arrayIndex)
         {
-           
+
             try
             {
                 rw_locker.EnterReadLock();
@@ -262,22 +253,24 @@ namespace myCollection
 
         public bool IsReadOnly
         {
-            get { return false; }   
+            get { return false; }
         }
+
         #endregion
 
         #region
-   
 
-        public void EnterUpgradeableReadLock()        
-        {                                             
-                                                      
+        public void EnterUpgradeableReadLock()
+        {
+
             rw_locker.EnterUpgradeableReadLock();
         }
+
         public void ExitUpgradeableReadLock()
         {
             rw_locker.ExitUpgradeableReadLock();
         }
+
         public int Count
         {
             get
@@ -294,7 +287,7 @@ namespace myCollection
             }
         }
 
-       
+
         public IEnumerator<KeyValuePair<KeysPair<TId, TName>, TValue>> GetEnumerator()
         {
             try
@@ -396,6 +389,7 @@ namespace myCollection
         {
             return this.Remove(item.Key);
         }
+
         #endregion
     }
 }
